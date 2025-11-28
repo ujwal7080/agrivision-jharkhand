@@ -57,15 +57,13 @@ export function ChatWidget() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to get response");
+        throw new Error("Failed to get response");
       }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let assistantMessage = "";
       const assistantId = (Date.now() + 1).toString();
-      let hasError = false;
 
       if (reader) {
         while (true) {
@@ -81,26 +79,6 @@ export function ChatWidget() {
             if (!line.trim()) continue;
             
             try {
-              // Check for error objects in stream
-              if (line.includes('"type":"error"') || line.includes('"error":{')) {
-                const errorObj = JSON.parse(line.startsWith("2:") ? line.slice(2) : line);
-                
-                // Handle different error formats
-                if (errorObj.type === "error" && errorObj.error) {
-                  hasError = true;
-                  const errorMsg = errorObj.error.message || errorObj.error.code || "AI service error";
-                  
-                  if (errorMsg.includes("insufficient_quota") || errorMsg.includes("quota")) {
-                    throw new Error("AI service quota exceeded. Please contact support or try again later.");
-                  } else if (errorMsg.includes("API key")) {
-                    throw new Error("AI service configuration error. Please contact support.");
-                  } else {
-                    throw new Error(errorMsg);
-                  }
-                }
-                continue;
-              }
-              
               // AI SDK format: each line is like "0:"text chunk"
               if (line.startsWith("0:")) {
                 const jsonStr = line.slice(2);
@@ -108,66 +86,43 @@ export function ChatWidget() {
                 if (typeof parsed === "string") {
                   assistantMessage += parsed;
                 }
-              } else if (line.startsWith("2:")) {
-                // Check for error in data chunk
-                try {
-                  const parsed = JSON.parse(line.slice(2));
-                  if (parsed.error) {
-                    hasError = true;
-                    throw new Error(parsed.error.message || "AI service error");
-                  }
-                } catch (e) {
-                  // Not an error object, continue
-                }
               } else {
                 // Plain text fallback
                 assistantMessage += line;
               }
               
               // Update UI with accumulated message
-              if (assistantMessage.trim() && !hasError) {
-                setMessages((prev) => {
-                  const filtered = prev.filter((m) => m.id !== assistantId);
-                  return [
-                    ...filtered,
-                    {
-                      id: assistantId,
-                      role: "assistant",
-                      content: assistantMessage,
-                    },
-                  ];
-                });
-              }
+              setMessages((prev) => {
+                const filtered = prev.filter((m) => m.id !== assistantId);
+                return [
+                  ...filtered,
+                  {
+                    id: assistantId,
+                    role: "assistant",
+                    content: assistantMessage,
+                  },
+                ];
+              });
             } catch (e) {
-              if (e instanceof Error && e.message.includes("quota")) {
-                throw e; // Re-throw quota errors
-              }
               // If parsing fails, treat as plain text
-              if (!hasError) {
-                assistantMessage += chunk;
-                setMessages((prev) => {
-                  const filtered = prev.filter((m) => m.id !== assistantId);
-                  return [
-                    ...filtered,
-                    {
-                      id: assistantId,
-                      role: "assistant",
-                      content: assistantMessage,
-                    },
-                  ];
-                });
-              }
+              assistantMessage += chunk;
+              setMessages((prev) => {
+                const filtered = prev.filter((m) => m.id !== assistantId);
+                return [
+                  ...filtered,
+                  {
+                    id: assistantId,
+                    role: "assistant",
+                    content: assistantMessage,
+                  },
+                ];
+              });
             }
           }
         }
         
-        // Check if we got any valid response
-        if (!assistantMessage.trim() && !hasError) {
-          throw new Error("No response received from AI service");
-        }
-        
         // Ensure final message is added if not already
-        if (assistantMessage.trim() && !hasError) {
+        if (assistantMessage.trim()) {
           setMessages((prev) => {
             const filtered = prev.filter((m) => m.id !== assistantId);
             return [
@@ -182,8 +137,7 @@ export function ChatWidget() {
         }
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to send message. Please try again.";
-      setError(errorMessage);
+      setError("Failed to send message. Please try again.");
       console.error("Chat error:", err);
     } finally {
       setIsLoading(false);
