@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1764264679102,
+      "tag": "0000_brainy_magus",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1764324554663,
+      "tag": "0001_normal_tempest",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1764324608944,
+      "tag": "0002_flimsy_the_hand",
+      "breakpoints": true
+    }
+  ]
+}
