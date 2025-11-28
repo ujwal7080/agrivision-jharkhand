@@ -176,15 +176,6 @@ export default function WeatherWidget({ district: districtProp }: WeatherWidgetP
           </div>
           <div className="flex gap-1">
             <Button
-              onClick={() => setShowLocationDialog(true)}
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 p-0"
-              title="Change location">
-
-              <Settings className="w-4 h-4 text-blue-600" />
-            </Button>
-            <Button
               onClick={fetchWeather}
               size="sm"
               variant="ghost"
